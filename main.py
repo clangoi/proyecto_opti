@@ -1,11 +1,17 @@
-# main.py
 
 import time
+import os
 import gurobipy as gp
 from gurobipy import GRB
 
+# CONFIGURACION DE DATOS
+DATA_REAL = False  # False: datos sinteticos | True: datos reales
+MODELS_DIR = "models" if DATA_REAL else "sintetic_models"
+SOLS_DIR = "sols" if DATA_REAL else "sintetic_sols"
+FILE_PREFIX = "" if DATA_REAL else "sintetic_"
+
 from create_data import crear_data
-crear_data(data=False)
+crear_data(data=DATA_REAL)
 
 from variables import crear_variables
 from funcion_objetivo import agregar_funcion_objetivo
@@ -14,9 +20,12 @@ from parametros import crear_parametros
 from conjuntos import crear_conjuntos
 
 
-pacientes, tiempos, pabellones, camas, cirujanos, anestesistas, cirugias, especialidades, tipos_cirugia = crear_conjuntos(data=False) 
-alpha, d, r, a, b, L, w, E, Q, R, A, G, DispP, DispK, DispM = crear_parametros(data=False) 
+pacientes, tiempos, pabellones, camas, cirujanos, anestesistas, cirugias, especialidades, tipos_cirugia = crear_conjuntos(data=DATA_REAL) 
+alpha, d, r, a, b, L, w, E, Q, R, A, G, DispP, DispK, DispM = crear_parametros(data=DATA_REAL) 
 
+# Crear carpetas de salida automaticamente
+os.makedirs(MODELS_DIR, exist_ok=True)
+os.makedirs(SOLS_DIR, exist_ok=True)
 
 
 def log(mensaje):
@@ -25,7 +34,8 @@ def log(mensaje):
 
 inicio_total = time.time()
 
-log("Iniciando modelo de programación quirúrgica")
+log("Iniciando modelo de programacion quirurgica")
+log(f"Modo de datos: {'Real' if DATA_REAL else 'Sintetico'}")
 
 log("Resumen de conjuntos:")
 log(f"Pacientes: {len(list(pacientes))}")
@@ -34,7 +44,7 @@ log(f"Pabellones: {len(list(pabellones))}")
 log(f"Camas: {len(list(camas))}")
 log(f"Cirujanos: {len(list(cirujanos))}")
 log(f"Anestesistas: {len(list(anestesistas))}")
-log(f"Tipos de cirugía: {len(list(cirugias))}")
+log(f"Tipos de cirugia: {len(list(cirugias))}")
 log(f"Especialidades: {len(list(especialidades))}")
 
 
@@ -45,7 +55,7 @@ log(f"Especialidades: {len(list(especialidades))}")
 log("Creando modelo Gurobi...")
 t0 = time.time()
 
-model = gp.Model("Programacion_Quirurgica")
+model = gp.Model("Programacion_Pabellones")
 
 log(f"Modelo creado en {time.time() - t0:.2f} segundos")
 
@@ -70,7 +80,7 @@ X, ZI, Z, LQ, WI, W, Y, H, O = crear_variables(
 model.update()
 
 log(f"Variables creadas en {time.time() - t0:.2f} segundos")
-log(f"Número de variables: {model.NumVars}")
+log(f"Numero de variables: {model.NumVars}")
 
 
 # ============================================================
@@ -117,14 +127,14 @@ agregar_restricciones(
 model.update()
 
 log(f"Restricciones agregadas en {time.time() - t0:.2f} segundos")
-log(f"Número de restricciones: {model.NumConstrs}")
+log(f"Numero de restricciones: {model.NumConstrs}")
 
 
 # ============================================================
-# 4. AGREGAR FUNCIÓN OBJETIVO
+# 4. AGREGAR FUNCION OBJETIVO
 # ============================================================
 
-log("Agregando función objetivo...")
+log("Agregando funcion objetivo...")
 t0 = time.time()
 
 agregar_funcion_objetivo(
@@ -140,20 +150,20 @@ agregar_funcion_objetivo(
 
 model.update()
 
-log(f"Función objetivo agregada en {time.time() - t0:.2f} segundos")
+log(f"Funcion objetivo agregada en {time.time() - t0:.2f} segundos")
 
 
 # ============================================================
-# 5. CONFIGURACIÓN GUROBI
+# 5. CONFIGURACION GUROBI
 # ============================================================
 
-log("Configurando parámetros de Gurobi...")
+log("Configurando parametros de Gurobi...")
 
 model.Params.OutputFlag = 1
 model.Params.TimeLimit = 300
 model.Params.MIPGap = 0.01
 
-log("Parámetros configurados:")
+log("Parametros configurados:")
 log("OutputFlag = 1")
 log("TimeLimit = 300")
 log("MIPGap = 0.01")
@@ -166,21 +176,22 @@ log("MIPGap = 0.01")
 log("Exportando modelo LP antes de optimizar...")
 t0 = time.time()
 
-model.write("modelo_programacion_{:.2f}.lp".format(time.time()))
+nombre_modelo = f"{MODELS_DIR}/{FILE_PREFIX}modelo_{time.time():.2f}.lp"
+model.write(nombre_modelo)
 
-log(f"Modelo LP exportado en {time.time() - t0:.2f} segundos")
+log(f"Modelo LP exportado en {nombre_modelo} ({time.time() - t0:.2f} s)")
 
 
 # ============================================================
 # 7. OPTIMIZAR
 # ============================================================
 
-log("Iniciando optimización...")
+log("Iniciando optimizacion...")
 t0 = time.time()
 
 model.optimize()
 
-log(f"Optimización terminada en {time.time() - t0:.2f} segundos")
+log(f"Optimizacion terminada en {time.time() - t0:.2f} segundos")
 log(f"Estado del modelo: {model.status}")
 log(f"Soluciones encontradas: {model.SolCount}")
 
@@ -195,7 +206,7 @@ if model.status in [GRB.OPTIMAL, GRB.TIME_LIMIT] and model.SolCount > 0:
     print("RESULTADOS")
     print("============================================================")
 
-    print(f"\nValor función objetivo: {model.ObjVal:.4f}")
+    print(f"\nValor funcion objetivo: {model.ObjVal:.4f}")
 
     print("\nPacientes programados:")
 
@@ -208,7 +219,7 @@ if model.status in [GRB.OPTIMAL, GRB.TIME_LIMIT] and model.SolCount > 0:
             for t in tiempos:
                 for p in pabellones:
                     if ZI[i, t, p].X > 0.5:
-                        print(f"Paciente {i} inicia cirugía en tiempo {t}, pabellón {p}")
+                        print(f"Paciente {i} inicia cirugia en tiempo {t}, pabellon {p}")
 
                         for k in cirujanos:
                             if Y[i, t, p, k].X > 0.5:
@@ -220,27 +231,28 @@ if model.status in [GRB.OPTIMAL, GRB.TIME_LIMIT] and model.SolCount > 0:
 
     print(f"\nTotal pacientes programados: {cantidad_programados}")
 
-    print("\nUso de camas de recuperación:")
+    print("\nUso de camas de recuperacion:")
 
     for i in pacientes:
         for t in tiempos:
             for c in camas:
                 if WI[i, t, c].X > 0.5:
-                    print(f"Paciente {i} inicia recuperación en tiempo {t}, cama {c}")
+                    print(f"Paciente {i} inicia recuperacion en tiempo {t}, cama {c}")
 
 else:
-    print("\nNo se encontró solución factible u óptima.")
+    print("\nNo se encontro solucion factible u optima.")
     print(f"Estado del modelo: {model.status}")
 
 
 # ============================================================
-# 9. GUARDAR SOLUCIÓN
+# 9. GUARDAR SOLUCION
 # ============================================================
 
 if model.SolCount > 0:
-    log("Exportando solución...")
-    model.write("solucion_programacion_quirurgica.sol")
-    log("Solución exportada en solucion_programacion_quirurgica.sol")
+    log("Exportando solucion...")
+    nombre_solucion = f"{SOLS_DIR}/{FILE_PREFIX}solucion_{time.time():.2f}.sol"
+    model.write(nombre_solucion)
+    log(f"Solucion exportada en {nombre_solucion}")
 
 
-log(f"Tiempo total de ejecución: {time.time() - inicio_total:.2f} segundos")
+log(f"Tiempo total de ejecucion: {time.time() - inicio_total:.2f} segundos")

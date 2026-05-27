@@ -1,5 +1,6 @@
-\ Model Programacion_Quirurgica
+\ Model Programacion_Pabellones
 \ LP format - for model browsing. Use MPS format to capture full model detail.
+\ Signature: 0x678fdebd6adcfccd
 Maximize
   5 X[1] + 2 X[2] + 8 X[3] + 6 X[4] + 2 X[5] + 5 X[6] + X[7] + 10 X[8]
    + 6 X[9] + 9 X[10] - O[1,1] - O[1,2] - O[1,3] - O[1,4] - O[1,5] - O[1,6]
