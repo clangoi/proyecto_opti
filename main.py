@@ -166,7 +166,7 @@ log("MIPGap = 0.01")
 log("Exportando modelo LP antes de optimizar...")
 t0 = time.time()
 
-model.write("modelo_programacion_quirurgica.lp")
+model.write("modelo_programacion_{:.2f}.lp".format(time.time()))
 
 log(f"Modelo LP exportado en {time.time() - t0:.2f} segundos")
 
