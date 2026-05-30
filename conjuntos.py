@@ -7,7 +7,7 @@ def crear_conjuntos(data):
 
     # data True para datos reales, False para datos sintéticos
     if data:
-        df_globales = pd.read_csv("data/parametros_globales.csv")
+        df_globales = pd.read_csv("data/parametros_globales.csv", sep=";")
     else:
         df_globales = pd.read_csv("data_sintetica/data/parametros_globales_sint.csv", sep=";")
 

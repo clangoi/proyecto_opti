@@ -19,15 +19,14 @@ def crear_data(data):
         DATA_DIR.mkdir(exist_ok=True)
 
     # Cantidad de datos sintéticos
-    # Mantener tamaños pequeños para licencia limitada de Gurobi
-    I = 10    # Pacientes
-    T = 16    # Bloques horarios
-    P = 2     # Pabellones
-    C = 4     # Camas de recuperación
-    K = 4     # Cirujanos
-    M = 3     # Anestesistas
-    S = 3     # Especialidades
-    CI = 4    # Tipos de cirugía
+    I = 3000   # Pacientes
+    T = 18    # Bloques horarios
+    P = 13     # Pabellones
+    C = 26     # Camas de recuperación
+    K = 23     # Cirujanos
+    M = 4     # Anestesistas
+    S = 19     # Especialidades
+    CI = 24    # Tipos de cirugía
 
     # Separador de salida
     SEP = ";"

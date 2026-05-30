@@ -8,7 +8,7 @@ def crear_parametros(data):
         carpeta = "_sintetica/data/"
         sufijo = "_sint"
     else:    
-        carpeta , sufijo = "", ""
+        carpeta , sufijo = "/", ""
     pacientes, tiempos, pabellones, camas, cirujanos, anestesistas, cirugias, especialidades, tipos_cirugia = crear_conjuntos(data)
 
     # ============================================================

@@ -1,0 +1,25 @@
+﻿CI;nombre cirugia
+1;Cirugía General
+2;Cirugía Laparoscópica
+3;Cirugía Digestiva
+4;Cirugía Ginecológica
+5;Cirugía de Urgencia Adulto
+6;Cirugía de Urgencia Pediátrica
+7;Cirugía Vascular
+8;Cirugía Proctológica
+9;Cirugía de Tórax
+10;Cirugía de Cabeza y Cuello
+11;Cirugía Máxilo Facial 
+12;Cirugía Electiva de baja cpmplejidad
+13;Cirugía Electiva de  mediana complejidad
+14;Cirugía Electiva de alta complejidad
+15;Cirugía Plástica
+16;Neurocirugía
+17;Cirugía Oftalmológica / LASIK
+18;Otorrinolaringología
+19;Urología
+20;Litotripsia
+21;Traumatología
+22;Cirugía Infantil
+23;Dermatología
+24;Odontología

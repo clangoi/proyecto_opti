@@ -1,0 +1,9 @@
+﻿parametro;valor;descripcion
+I;1522;pacientes
+T;18;bloques horarios
+P;13;pabellones
+C;26;camas recuperación
+K;23;cirujanos
+M;10;anestesistas
+S;19;especialidades
+CI;24;cirugias

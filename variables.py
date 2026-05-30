@@ -1,127 +1,85 @@
 from gurobipy import GRB
 
-
 def crear_variables(
-    model,
-    pacientes,
-    tiempos,
-    pabellones,
-    camas,
-    cirujanos,
-    anestesistas
+    model, pacientes, tiempos, pabellones, camas, cirujanos, anestesistas,
+    ci_paciente, duracion_cirugia, duracion_recuperacion, limpieza,
+    DispP_pos, DispK_pos, DispM_pos, CK_pos, CM_pos, ventanas_pacientes=None
 ):
-    # ============================================================
-    # X[i] = 1 si el paciente i es operado
-    # ============================================================
+    tiempos = sorted(tiempos)
+    T_MAX = tiempos[-1]
+    
+    d_cir = {ci: int(d) for ci, d in duracion_cirugia.items()}
+    r_rec = {ci: int(r) for ci, r in duracion_recuperacion.items()}
 
-    X = model.addVars(
-        pacientes,
-        vtype=GRB.BINARY,
-        name="X"
-    )
+    # Convertir a sets para búsquedas O(1)
+    dp = set(DispP_pos)
+    dk = set(DispK_pos)
+    dm = set(DispM_pos)
+    ck = set(CK_pos)
+    cm = set(CM_pos)
 
-    # ============================================================
-    # ZI[i,t,p] = 1 si el paciente i inicia cirugía en pabellón p
-    # en el tiempo t
-    # ============================================================
+    X = model.addVars(pacientes, vtype=GRB.BINARY, name="X")
 
-    ZI = model.addVars(
-        pacientes,
-        tiempos,
-        pabellones,
-        vtype=GRB.BINARY,
-        name="ZI"
-    )
+    # 🔑 PASO 1: Identificar combinaciones (i,t,p) VIABLES (con Y y H garantizados)
+    ZI_keys = []
+    Y_keys = []
+    H_keys = []
+    
+    for i in pacientes:
+        ci = ci_paciente[i]
+        d = d_cir[ci]
+        t_min, t_max = ventanas_pacientes.get(i, (tiempos[0], T_MAX)) if ventanas_pacientes else (tiempos[0], T_MAX)
 
-    # ============================================================
-    # Z[i,t,p] = 1 si el paciente i ocupa el pabellón p
-    # en el tiempo t
-    # ============================================================
+        for t in tiempos:
+            if t < t_min or t > t_max: continue
+            if t + d - 1 > T_MAX: continue
+            
+            bloques = range(t, t + d)
+            
+            # ¿Existe al menos 1 cirujano viable?
+            k_validos = [k for k in cirujanos if (ci, k) in ck and all((k, tau) in dk for tau in bloques)]
+            if not k_validos: continue
+                
+            # ¿Existe al menos 1 anestesista viable?
+            m_validos = [m for m in anestesistas if (ci, m) in cm and all((m, tau) in dm for tau in bloques)]
+            if not m_validos: continue
 
-    Z = model.addVars(
-        pacientes,
-        tiempos,
-        pabellones,
-        vtype=GRB.BINARY,
-        name="Z"
-    )
+            for p in pabellones:
+                if all((p, tau) in dp for tau in bloques):
+                    ZI_keys.append((i, t, p))
+                    Y_keys.extend((i, t, p, k) for k in k_validos)
+                    H_keys.extend((i, t, p, m) for m in m_validos)
 
-    # ============================================================
-    # LQ[i,t,p] = 1 si el pabellón p está en limpieza luego
-    # de operar al paciente i en el tiempo t
-    # ============================================================
+    ZI = model.addVars(ZI_keys, vtype=GRB.BINARY, name="ZI")
+    Y  = model.addVars(Y_keys,  vtype=GRB.BINARY, name="Y")
+    H  = model.addVars(H_keys,  vtype=GRB.BINARY, name="H")
 
-    LQ = model.addVars(
-        pacientes,
-        tiempos,
-        pabellones,
-        vtype=GRB.BINARY,
-        name="LQ"
-    )
-
-    # ============================================================
-    # WI[i,t,c] = 1 si el paciente i entra a recuperación
-    # en la cama c en el tiempo t
-    # ============================================================
-
-    WI = model.addVars(
-        pacientes,
-        tiempos,
-        camas,
-        vtype=GRB.BINARY,
-        name="WI"
-    )
-
-    # ============================================================
-    # W[i,t,c] = 1 si el paciente i ocupa la cama c
-    # en el tiempo t
-    # ============================================================
-
-    W = model.addVars(
-        pacientes,
-        tiempos,
-        camas,
-        vtype=GRB.BINARY,
-        name="W"
-    )
-
-    # ============================================================
-    # Y[i,t,p,k] = 1 si el cirujano k es asignado a la cirugía
-    # del paciente i en el pabellón p en el tiempo t
-    # ============================================================
-
-    Y = model.addVars(
-        pacientes,
-        tiempos,
-        pabellones,
-        cirujanos,
-        vtype=GRB.BINARY,
-        name="Y"
-    )
-
-    # ============================================================
-    # H[i,t,p,m] = 1 si el anestesista m es asignado a la cirugía
-    # del paciente i en el pabellón p en el tiempo t
-    # ============================================================
-
-    H = model.addVars(
-        pacientes,
-        tiempos,
-        pabellones,
-        anestesistas,
-        vtype=GRB.BINARY,
-        name="H"
-    )
-
-    # ============================================================
-    # O[p,t] = 1 si el pabellón p está ocioso en el tiempo t
-    # ============================================================
-
-    O = model.addVars(
-        pabellones,
-        tiempos,
-        vtype=GRB.BINARY,
-        name="O"
-    )
+    # 🔑 PASO 2: Variables derivadas (solo para ZI válidos)
+    Z_keys = set()
+    LQ_keys = set()
+    WI_keys = set()
+    W_keys = set()
+    
+    for i, t0, p in ZI_keys:
+        d = d_cir[ci_paciente[i]]
+        r = r_rec[ci_paciente[i]]
+        t_rec = t0 + d
+        
+        # Z
+        Z_keys.update((i, tau, p) for tau in range(t0, t0 + d))
+        # LQ
+        LQ_keys.update((i, tau, p) for tau in range(t0 + d, min(t0 + d + limpieza, T_MAX + 1)))
+        # WI (solo si hay tiempo de recuperación válido)
+        if t_rec <= T_MAX:
+            for c in camas:
+                WI_keys.add((i, t_rec, c))
+                W_keys.update((i, tau, c) for tau in range(t_rec, min(t_rec + r, T_MAX + 1)))
+            
+    Z  = model.addVars(Z_keys,  vtype=GRB.BINARY, name="Z")
+    LQ = model.addVars(LQ_keys, vtype=GRB.BINARY, name="LQ")
+    WI = model.addVars(WI_keys, vtype=GRB.BINARY, name="WI")
+    W  = model.addVars(W_keys,  vtype=GRB.BINARY, name="W")
+    
+    O = model.addVars(pabellones, tiempos, vtype=GRB.BINARY, name="O")
 
     return X, ZI, Z, LQ, WI, W, Y, H, O

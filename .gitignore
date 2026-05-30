@@ -218,3 +218,8 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+models/*.lp
+sintetic_models/*.lp
+sols/*.sol
+sintetic_sols/*.sol
+logs/*.log
