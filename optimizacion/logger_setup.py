@@ -3,7 +3,7 @@ import logging
 import os
 from datetime import datetime
 
-LOG_DIR = "logs"
+LOG_DIR = "resultados"
 os.makedirs(LOG_DIR, exist_ok=True)
 
 TIMESTAMP = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")

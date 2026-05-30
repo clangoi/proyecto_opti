@@ -10,7 +10,7 @@ from gurobipy import GRB
 DATA_REAL = True  # False: datos sinteticos | True: datos reales
 
 MODELS_DIR = "models" if DATA_REAL else "sintetic_models"
-SOLS_DIR = "sols" if DATA_REAL else "sintetic_sols"
+SOLS_DIR = "soluciones" if DATA_REAL else "sintetic_sols"
 FILE_PREFIX = "" if DATA_REAL else "sintetic_"
 
 LIMPIEZA_BLOQUES = 1
